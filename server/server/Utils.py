@@ -1,96 +1,15 @@
-from typing import List
-from sqlalchemy import Column, Integer, String, ForeignKey, or_, and_, create_engine
-from sqlalchemy.orm import declarative_base, relationship, Session
+from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_, create_engine
+from server.server.models import User, Customer, CartItem, Products
+from server.server.db import Base, engine, db_path, LocalSession
 import uuid
 import os
+from typing import List
+import json
 
-
-Base = declarative_base()
-
-
-###############  Utils Classes   ##################
-
-
-class User(Base):
-    __tablename__ = 'user'
-
-    id = Column(Integer, primary_key=True)
-    user_name = Column(String)
-    email = Column(String)
-    password = Column(String)
-
-    customer = relationship("Customer", backref="owner")
-
-    def __init__(self,
-                 user_name,
-                 email,
-                 password):
-        self.user_name = user_name
-        self.email = email
-        self.password = password
-
-
-class Admin(User):
-    pass
-
-
-class Products(Base):
-    __tablename__ = 'products'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    price = Column(Integer)
-    description = Column(String)
-    quantity = Column(Integer)
-    image_path = Column(String)
-
-    def __init__(self,
-                 product_name,
-                 price,
-                 description,
-                 quantity,
-                 image_path=""):
-        self.product_name = product_name
-        self.price = price
-        self.description = description
-        self.quantity = quantity
-        self.image_path = image_path
-
-
-class Customer(Base):
-    __tablename__ = 'customer'
-
-    id = Column(Integer, primary_key=True)
-    address = Column(String)
-
-    user_id = Column(Integer, ForeignKey("user.id"))
-
-    def __init__(self,
-                 user: User,
-                 address):
-        self.user = user
-        self.address = address
-
-
-class CartItem(Base):
-    __tablename__ = "cartitem"
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey('customer.id'))
-    product_id = Column(Integer, ForeignKey('products.id'))
-    quantity = Column(Integer)
-
-    def __init__(self,
-                 customer_id,
-                 product_id,
-                 quantity):
-        self.customer_id = customer_id
-        self.product_id = product_id
-        self.quantity = quantity
-
-
-###############  Utils Functions   ################
 
 ###############  SQLALCHEMY CLASS  ################
+
 
 class Query:
     def __init__(self,
@@ -105,6 +24,9 @@ class Query:
 
     def first(self):
         return self.query.first()
+
+    def all_to_json(self):
+        return json.dumps([obj.__dict__ for obj in self.all()], default=lambda obj: obj.__dict__)
 
 
 def or_cond(*args):
@@ -134,11 +56,11 @@ class Connection:
 
     """
     def __init__(self,
-                 db_path=None):
-        self.db_path = "{}.db".format(db_path or uuid.uuid1())
-        self.engine = create_engine(f'sqlite:///{self.db_path}')
+                 local=True):
+        self.db_path = "{}.db".format(uuid.uuid1()) if local else db_path
+        self.engine = create_engine(f'sqlite:///{self.db_path}') if local else engine
+        self.session = Session(bind=self.engine) if local else LocalSession()
         Base.metadata.create_all(bind=self.engine)
-        self.session = Session(self.engine)
 
     def shutdown(self):
         self.session.close()
@@ -165,7 +87,6 @@ class Connection:
     def add_object(self,
                    object_to_add):
         """
-        :param session: sqlalchemy session.
         :param object_to_add: object that we wish to add to the db.
         :return: 0 if succeded, 1 if failed
         """
@@ -208,7 +129,6 @@ class Connection:
     def execute_order(self,
                       customer: Customer):
         """
-        :param session: the sqlalchemy session
         :param customer: the customer executing the order
         :return: missing items dict (empty dict if no items were missing)
         executing the order, update the stock, and reset customer cart.

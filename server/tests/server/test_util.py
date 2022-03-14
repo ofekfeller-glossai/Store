@@ -1,6 +1,7 @@
 import pytest
 import pytest_check as check
-from server.server.Utils import User, Products, Customer, Connection, CartItem, and_cond, or_cond
+from server.server.models import User, Products, Customer, CartItem
+from server.server.Utils import and_cond, or_cond, Connection
 from server.tests.server.tests_assist import test_users, add_users, add_products, add_customer, add_cart_items, \
     test_products
 
