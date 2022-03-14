@@ -157,4 +157,36 @@ class Connection:
 
         return missing_dict
 
+    def validate_login(self, username, password):
+        return self.get(User, and_cond(User.user_name == username, User.password == password)).count() > 0
+
+###### Util Functions ########
+
+def extract_dict_list_from_query(*query):
+    ret = []
+    for item in query:
+        item_dict = item.__dict__
+        item_dict.pop("_sa_instance_state")
+        ret.append(item_dict)
+
+    return ret
+
+
+def extract_dict_list_from_query_list(query_list):
+    return extract_dict_list_from_query(*query_list)
+
+
+def list_to_str(lst):
+    return [str(item) for item in lst]
+
+
+def dict_to_html_table(data):
+    html = '<table border="1"><tr><th>' + '</th><th>'.join(list_to_str(data[0].keys())) + '</th></tr>'
+
+    for dict_ in data:
+        html += '<tr><td>' + '</td><td>'.join(list_to_str(dict_.values())) + '</td></tr>'
+
+    html += '</table>'
+    return html
+
 
