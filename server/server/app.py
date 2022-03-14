@@ -40,12 +40,12 @@ def items():
     return json.dumps(res)
 
 
-@app.route("/cart/<customer_id>")
-def cart(customer_id=None):
-    query = conn.get(CartItem, CartItem.customer_id == customer_id).all()
+@app.route("/cart/<product_id>")
+def cart(product_id=None):
+    query = conn.get(CartItem, CartItem.product_id == product_id).all()
 
     if not query:
-        return json.dumps(dict(data="your cart is empty!", status_code=400))
+        return json.dumps(dict(data="no one added this item to his cart!", status_code=400))
 
     ret = dict(status_code=200,
                data=extract_dict_from_query_list(query))
