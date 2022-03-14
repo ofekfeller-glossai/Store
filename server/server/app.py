@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, request, render_template
 import json
 from server.server.Utils import Connection, and_cond
 from server.server.models import Products, CartItem, User
@@ -40,17 +40,22 @@ def items():
     return json.dumps(res)
 
 
-@app.route("/cart/<customer_id>")
-def cart(customer_id=None):
-    query = conn.get(CartItem, CartItem.customer_id == customer_id).all()
+@app.route("/cart/", methods=['GET', 'POST'])
+def cart():
 
-    if not query:
-        return json.dumps(dict(data="your cart is empty!", status_code=400))
+    if request.method == 'GET':
+        return render_template('cart.html')
 
-    ret = dict(status_code=200,
-               data=extract_dict_list_from_query_list(query))
+    if request.method == 'POST':
+        query = conn.get(CartItem, CartItem.customer_id == request.form.get("cid")).all()
 
-    return json.dumps(ret)
+        if not query:
+            return json.dumps(dict(data="your cart is empty!", status_code=400)) + "</br></br><a href='/cart/'>Back</a>"
+
+        ret = dict(status_code=200,
+                   data=extract_dict_list_from_query_list(query))
+
+        return json.dumps(ret) + "</br></br><a href='/cart/'>Back</a>"
 
 
 if __name__ == '__main__':
