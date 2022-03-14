@@ -8,7 +8,7 @@ app = Flask(__name__)
 conn = Connection(local=False)
 
 
-def extract_dict_from_query(*query):
+def extract_dict_list_from_query(*query):
     ret = []
     for item in query:
         item_dict = item.__dict__
@@ -18,8 +18,8 @@ def extract_dict_from_query(*query):
     return ret
 
 
-def extract_dict_from_query_list(query_list):
-    return extract_dict_from_query(*query_list)
+def extract_dict_list_from_query_list(query_list):
+    return extract_dict_list_from_query(*query_list)
 
 
 @app.route("/")
@@ -35,7 +35,7 @@ def items():
         return json.dumps(dict(data="no items where found", status_code=500))
 
     res = dict(status_code=200,
-               data=extract_dict_from_query_list(query))
+               data=extract_dict_list_from_query_list(query))
 
     return json.dumps(res)
 
@@ -53,7 +53,7 @@ def cart():
             return json.dumps(dict(data="your cart is empty!", status_code=400)) + "</br></br><a href='/cart/'>Back</a>"
 
         ret = dict(status_code=200,
-                   data=extract_dict_from_query_list(query))
+                   data=extract_dict_list_from_query_list(query))
 
         return json.dumps(ret) + "</br></br><a href='/cart/'>Back</a>"
 
