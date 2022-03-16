@@ -1,61 +1,134 @@
-from flask import Flask, redirect, url_for, request, render_template
+from flask import Flask, redirect, url_for, session, request, render_template, Response
+
 import json
-from server.server.Utils import Connection, and_cond
-from server.server.models import Products, CartItem, User
-import flask_login
+from server.server.Utils import Connection, and_cond, dict_to_html_table, extract_dict_list_from_query
+from server.server.models import Products, CartItem, User, Customer
+from werkzeug.wrappers.response import Response
+from functools import wraps
+
 app = Flask(__name__)
+
+app.secret_key = "any random string"
 
 conn = Connection(local=False)
 
-
-def extract_dict_list_from_query(*query):
-    ret = []
-    for item in query:
-        item_dict = item.__dict__
-        item_dict.pop("_sa_instance_state")
-        ret.append(item_dict)
-
-    return ret
+back_button = "</br></br><a href='/'>Back</a>"
 
 
-def extract_dict_list_from_query_list(query_list):
-    return extract_dict_list_from_query(*query_list)
+def query_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        try:
+
+            ret_dict = func(*args, **kwargs)
+
+            data = ret_dict.get('data')
+
+            if not data:
+                ret_dict['status_code'] = 500
+
+            else:
+                data_dict = extract_dict_list_from_query(*data)  # heres is the place to add the dict to html table
+
+                ret_dict['data'] = data_dict
+
+        except Exception as e:
+
+            ret_dict = dict(
+                data="An error occurred while responding the request.",
+                error=e,
+                status_code=400,
+            )
+
+        return json.dumps(ret_dict) + back_button
+
+    return wrapper
+
+
+def render_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        try:
+            ret_dict = func(*args, **kwargs)
+
+            if isinstance(ret_dict, Response):
+                return ret_dict
+
+        except Exception as e:
+
+            print(e)
+
+            ret_dict = dict(
+                data="An error occurred while responding the request.",
+                error=e,
+                status_code=400,
+                render_target='error'
+
+            )
+
+        return render_template(f"{ret_dict['render_target']}.html", **ret_dict)
+
+    return wrapper
 
 
 @app.route("/")
+@render_decorator
 def index():
-    return redirect(url_for('items'))
+    if 'username' in session:
+
+        user: User = conn.get(User, User.user_name == session['username']).first()
+        customer: Customer = conn.get(Customer, Customer.user_id == user.id).first()
+
+        return dict(render_target='index',
+                    username=session['username'],
+                    customer=customer.id)
+
+    else:
+
+        return redirect(url_for('login'))
+
+
+@app.route("/login", methods=['POST', 'GET'])
+@render_decorator
+def login():
+    if 'username' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if conn.validate_login(username, password):
+
+            session['username'] = username
+            return redirect(url_for('index'))
+
+        else:
+            return redirect(url_for('login'))
+
+    if request.method == 'GET':
+        return dict(render_target='login')
 
 
 @app.route("/items")
+@query_decorator
 def items():
     query = conn.get(Products).all()
 
-    if not query:
-        return json.dumps(dict(data="no items where found", status_code=500))
-
-    res = dict(status_code=200,
-               data=extract_dict_list_from_query_list(query))
-
-    return json.dumps(res)
+    return dict(status_code=200,
+                data=query)
 
 
-@app.route("/cart/", methods=['GET', 'POST'])
-def cart():
+@app.route("/cart/<customer_id>")
+@query_decorator
+def cart(customer_id=None):
+    query = conn.get(CartItem, CartItem.customer_id == customer_id).all()
 
-    if request.method == 'GET':
-        return render_template('cart.html')
-
-    if request.method == 'POST':
-        query = conn.get(CartItem, CartItem.customer_id == request.form.get("cid")).all()
-
-        if not query:
-            return json.dumps(dict(data="your cart is empty!", status_code=400)) + "</br></br><a href='/cart/'>Back</a>"
-
-        ret = dict(status_code=200,
-                   data=extract_dict_list_from_query_list(query))
-
-        return json.dumps(ret) + "</br></br><a href='/cart/'>Back</a>"
+    return dict(status_code=200,
+                data=query)
 
 
 if __name__ == '__main__':

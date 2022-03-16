@@ -1,13 +1,14 @@
 
-<div class="column is-4 is-offset-4">
-    <div class="box">
-        <form method="POST" action="/cart">
-            <div class="field">
-                <div class="control">
-                    <input class="input is-large" name="cid" placeholder="Enter Customer_ID" autofocus="">
-                </div>
-            </div>
-            <button class="button is-block is-info is-large is-fullwidth">send</button>
-        </form>
-    </div>
-</div>
+{% if cartitems_list %}
+    <table>
+        <tr><th>Product ID</th><th>Quantity</th> </tr>
+    {% for cartitem in cartitems_list %}
+        <tr>
+            <td>{{ cartitem.product_id }}</td>
+            <td>{{ cartitem.quantity }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+{% else %}
+    <p>No polls are available.</p>
+{% endif %}
