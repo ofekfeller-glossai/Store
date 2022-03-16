@@ -22,7 +22,7 @@ def query_decorator(func):
             if not ret_dict["data"]:
                 ret_dict['status_code'] = 500
 
-            data_dict = extract_dict_list_from_query(*ret_dict['data'])
+            data_dict = extract_dict_list_from_query(*ret_dict['data'])  # heres is the place to add the dict to html table
 
             ret_dict['data'] = data_dict
 
