@@ -1,0 +1,13 @@
+{% if cartitems_list %}
+    <table>
+        <tr><th>Product ID</th><th>Quantity</th> </tr>
+    {% for cartitem in cartitems_list %}
+        <tr>
+            <td>{{ cartitem.product_id }}</td>
+            <td>{{ cartitem.quantity }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+{% else %}
+    <p>No polls are available.</p>
+{% endif %}
