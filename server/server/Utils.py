@@ -162,6 +162,7 @@ class Connection:
 
 ###### Util Functions ########
 
+
 def extract_dict_list_from_query(*query):
     ret = []
     for item in query:
@@ -170,10 +171,6 @@ def extract_dict_list_from_query(*query):
         ret.append(item_dict)
 
     return ret
-
-
-def extract_dict_list_from_query_list(query_list):
-    return extract_dict_list_from_query(*query_list)
 
 
 def list_to_str(lst):
