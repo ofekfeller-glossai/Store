@@ -3,6 +3,8 @@ import json
 from server.server.Utils import Connection, and_cond, dict_to_html_table, extract_dict_list_from_query
 from server.server.models import Products, CartItem, User, Customer
 from werkzeug.wrappers.response import Response
+from functools import wraps
+
 app = Flask(__name__)
 
 app.secret_key = "any random string"
@@ -13,18 +15,22 @@ back_button = "</br></br><a href='/'>Back</a>"
 
 
 def query_decorator(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
 
         try:
 
             ret_dict = func(*args, **kwargs)
 
-            if not ret_dict["data"]:
+            data = ret_dict.get('data')
+
+            if not data:
                 ret_dict['status_code'] = 500
 
-            data_dict = extract_dict_list_from_query(*ret_dict['data'])  # heres is the place to add the dict to html table
+            else:
+                data_dict = extract_dict_list_from_query(*data)  # heres is the place to add the dict to html table
 
-            ret_dict['data'] = data_dict
+                ret_dict['data'] = data_dict
 
         except Exception as e:
 
@@ -36,11 +42,11 @@ def query_decorator(func):
 
         return json.dumps(ret_dict) + back_button
 
-    wrapper.__name__ = func.__name__
     return wrapper
 
 
 def render_decorator(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
 
         try:
@@ -63,7 +69,6 @@ def render_decorator(func):
 
         return render_template(f"{ret_dict['render_target']}.html", **ret_dict)
 
-    wrapper.__name__ = func.__name__
     return wrapper
 
 
